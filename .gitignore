@@ -23,12 +23,12 @@ wheels/
 *.egg
 MANIFEST
 
-# Data directories
-data/*.db
-data/*.xlsx
-labels/*.png
-labels/*.pdf
-labels/*.svg
+# Data directories (commented out to allow uploading sample data)
+# data/*.db
+# data/*.xlsx
+# labels/*.png
+# labels/*.pdf
+# labels/*.svg
 
 # Environment files
 .env
