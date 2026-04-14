@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}База • Система инвентаризации{% endblock %}
+{% block page_title %}База{% endblock %}
+
+{% block content %}
+  <div class="card card-glass">
+    <div class="card-header py-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="fw-semibold"><i class="bi bi-funnel me-2"></i>Поиск и фильтры</div>
+        <div class="text-muted small">Показываем последние 100 записей</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="GET" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-6">
+          <label class="form-label text-muted">Поиск</label>
+          <input type="text" name="search" class="form-control form-control-lg"
+                 placeholder="ИНВ / техника / кабинет / серийный" value="{{ search }}">
+        </div>
+        <div class="col-12 col-lg-4">
+          <label class="form-label text-muted">Поликлиника</label>
+          <select name="clinic" class="form-select form-select-lg">
+            <option value="">Все</option>
+            {% for code, name in clinics.items() %}
+              <option value="{{ code }}" {% if clinic_filter == code %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-lg-2 d-grid">
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-search me-1"></i>Найти
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card card-glass mt-3">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-darkglass table-hover mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Поликлиника</th>
+              <th>Каб.</th>
+              <th>Техника</th>
+              <th>ИНВ</th>
+              <th class="d-none d-xl-table-cell">Серийный</th>
+              <th class="text-end">IP</th>
+              <th class="text-center">Dr.Web</th>
+              <th class="text-center">Office</th>
+              <th class="text-end">Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td class="fw-semibold">{{ item.id }}</td>
+              <td><span class="badge badge-soft">{{ clinics.get(item.clinic, item.clinic) }}</span></td>
+              <td>{{ item.cabinet }}</td>
+              <td class="fw-semibold">{{ item.tech }}</td>
+              <td><code class="text-light">{{ item.inv_number }}</code></td>
+              <td class="d-none d-xl-table-cell">{{ item.serial }}</td>
+              <td class="text-end">
+                {% if item.ip %}
+                  <span class="badge text-bg-success">{{ item.ip }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if item.drweb and item.drweb.lower() in ['да', 'yes', 'установлен', '1', '+'] %}
+                  <i class="bi bi-check-circle text-success"></i>
+                {% else %}
+                  <i class="bi bi-x-circle text-muted"></i>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if item.office and item.office.lower() in ['да', 'yes', 'установлен', '1', '+'] %}
+                  <i class="bi bi-check-circle text-success"></i>
+                {% else %}
+                  <i class="bi bi-x-circle text-muted"></i>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}"
+                      onsubmit="return confirm('Удалить запись?');" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

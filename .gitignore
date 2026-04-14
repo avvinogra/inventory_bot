@@ -1,0 +1,220 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Data directories
+data/*.db
+data/*.xlsx
+labels/*.png
+labels/*.pdf
+labels/*.svg
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.swm
+*.sw?
+
+# Logs
+*.log
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.sql.gz
+*.sqlite.journal
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python test and coverage
+.tox/
+.coverage
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Virtualenv
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# MacOS
+*.app
+*.dmg
+*.pkg
+*.download
+
+# Windows
+*.exe
+*.dll
+*.msi
+*.bat
+*.cmd
+*.ps1
+*.psd1
+*.psm1
+*.ps1xml
+*.psc1
+*.psc2
+*.cdxml
+*.clixml
+
+# Linux
+*.so
+*.so.*
+*.a
+*.la
+*.o
+*.ko
+*.mod.c
+*.symvers
+*.order
+*.mod
+*.elf
+*.bin
+*.lzma
+*.lzo
+*.lz4
+*.lz
+*.gz
+*.bz2
+*.xz
+*.zst
+*.zstd
+*.z
+*.Z
+*.tgz
+*.tbz
+*.tbz2
+*.txz
+*.tlz
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.lz
+*.tar.zst
+*.tar.z
+*.tar.Z
+*.rar
+*.zip
+*.7z
+*.xz
+*.lzma
+*.lzo
+*.lz4
+*.lz
+*.gz
+*.bz2
+*.zst
+*.zstd
+*.z
+*.Z
+*.tgz
+*.tbz
+*.tbz2
+*.txz
+*.tlz
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.lz
+*.tar.zst
+*.tar.z
+*.tar.Z
+*.rar
+*.zip
+*.7z
+*.xz
+*.lzma
+*.lzo
+*.lz4
+*.lz
+*.gz
+*.bz2
+*.zst
+*.zstd
+*.z
+*.Z
+*.tgz
+*.tbz
+*.tbz2
+*.txz
+*.tlz
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.lz
+*.tar.zst
+*.tar.z
+*.tar.Z
+*.rar
+*.zip
+*.7z
+<task_progress>
+- [x] Check if this is a git repository
+- [x] Initialize git repository if needed
+- [x] Check and update .gitignore file
+- [x] Create .gitignore file
+- [ ] Add files to git
+- [ ] Commit files
+- [ ] Create GitHub repository
+- [ ] Add remote origin
+- [ ] Push to GitHub
+</task_progress>
+</write_to_file>
