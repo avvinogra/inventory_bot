@@ -28,14 +28,14 @@ source venv/bin/activate  # Linux/macOS
 #или
 venv\Scripts\activate     # Windows
 
-#3. Установите зависимости
+ 3. Установите зависимости
 pip install -r requirements.txt
 
  4. Настройте переменные окружения
 cp .env.example .env
 Отредактируйте .env, добавив BOT_TOKEN и другие параметры
 
-#5. Запустите бота
+ 5. Запустите бота
 python bot.py
 
 ## 🔧 Установка (подробно)
