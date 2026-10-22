@@ -1,0 +1,105 @@
+{# Этот partial подгружается HTMX при поиске без перезагрузки страницы #}
+<div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden relative">
+  {% if items|length == 0 %}
+  <div class="p-8 text-center text-slate-500">
+    <i class="bi bi-database-slash text-2xl block mb-2"></i>
+    Записи не найдены
+  </div>
+  {% else %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="text-slate-400 border-b border-slate-700/50">
+        <tr>
+          <th class="text-left px-3 py-3 font-medium" style="width: 50px;">ID</th>
+          <th class="text-left px-3 py-3 font-medium">Поликлиника</th>
+          <th class="text-left px-3 py-3 font-medium">Каб.</th>
+          <th class="text-left px-3 py-3 font-medium">Тип</th>
+          <th class="text-left px-3 py-3 font-medium">Марка, модель</th>
+          <th class="text-left px-3 py-3 font-medium">Инв. №</th>
+          <th class="text-left px-3 py-3 font-medium hidden xl:table-cell">Серийный</th>
+          <th class="text-left px-3 py-3 font-medium hidden xl:table-cell">ОС</th>
+          <th class="text-center px-3 py-3 font-medium">Dr.Web</th>
+          <th class="text-right px-3 py-3 font-medium">IP</th>
+          <th class="text-left px-3 py-3 font-medium hidden lg:table-cell">Имя ПК</th>
+          <th class="text-right px-3 py-3 font-medium" style="width: 100px;">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr class="border-b border-slate-700/30 hover:bg-slate-700/20">
+          <td class="px-3 py-2 font-semibold">{{ item.id }}</td>
+          <td class="px-3 py-2">
+            <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ CLINICS.get(item.clinic, item.clinic) }}</span>
+          </td>
+          <td class="px-3 py-2">{{ item.cabinet }}</td>
+          <td class="px-3 py-2">
+            {% if item.tech_type %}
+              <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ TECH_TYPE_LABELS.get(item.tech_type, item.tech_type) }}</span>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2 font-semibold">
+            <a href="{{ url_for('item_detail', item_id=item.id) }}" class="hover:text-brand-500">{{ item.tech }}</a>
+          </td>
+          <td class="px-3 py-2"><code class="text-slate-200">{{ item.inv_number }}</code></td>
+          <td class="px-3 py-2 hidden xl:table-cell">{{ item.serial }}</td>
+          <td class="px-3 py-2 hidden xl:table-cell">{{ item.os }}</td>
+          <td class="px-3 py-2 text-center">
+            {% if item.drweb %}
+              {% set drweb_l = item.drweb|lower %}
+              {% if 'Установлен' in item.drweb or drweb_l == '+' %}
+                <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 border border-ok-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% elif 'Не установлен' in item.drweb or drweb_l == 'нет' %}
+                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-slate-400 border border-slate-700 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% elif 'Нет лицензии' in item.drweb or 'нет лиц' in drweb_l %}
+                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% elif 'Нет соединения' in item.drweb or 'нет соед' in drweb_l %}
+                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% else %}
+                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ item.drweb }}</span>
+              {% endif %}
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2 text-right">
+            {% if item.ip %}
+              <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 text-xs">{{ item.ip }}</span>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2 hidden lg:table-cell">
+            {% if item.pc_name %}
+              <code class="text-slate-200 text-xs">{{ item.pc_name }}</code>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2 text-right">
+            <a href="{{ url_for('item_detail', item_id=item.id) }}"
+               class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 me-1"
+               title="Просмотр">
+              <i class="bi bi-eye"></i>
+            </a>
+            <button
+               hx-delete="{{ url_for('delete_item', item_id=item.id) }}"
+               hx-target="closest tr"
+               hx-swap="outerHTML"
+               hx-confirm="Удалить запись #{{ item.id }} — {{ item.tech }}?"
+               class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-bad-500/30 bg-bad-500/10 hover:bg-bad-500/20 text-bad-500"
+               title="Удалить">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="px-3 py-2 border-t border-slate-700/50 text-xs text-slate-400">
+    Показано: {{ items|length }} записей
+  </div>
+  {% endif %}
+</div>
