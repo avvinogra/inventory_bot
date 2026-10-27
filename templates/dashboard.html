@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Дашборд • Инвентаризация{% endblock %}
+{% block page_title %}Дашборд{% endblock %}
+{% block head_extra %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+  <!-- KPI: основные -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div class="bg-gradient-to-br from-brand-500/15 to-accent-500/10 border border-brand-500/30 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">Всего устройств</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ total_items }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">записей в базе</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-hdd text-xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-ok-500/15 to-emerald-500/5 border border-ok-500/30 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">С именем компьютера</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ with_pc_name }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">из {{ total_items }}</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-pc text-xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-sky-500/15 to-brand-500/5 border border-sky-500/30 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">С IP-адресом</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ with_ip }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">из {{ total_items }}</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-router text-xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-warn-500/15 to-orange-500/5 border border-warn-500/30 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">Поликлиники</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ clinic_count }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">в базе</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-building text-xl"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI: дополнительно -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">С физ. MAC</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ with_mac_phys }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">из {{ total_items }}</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-ethernet text-xl"></i>
+        </div>
+      </div>
+    </div>
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">С реал. MAC</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ with_mac_real }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">из {{ total_items }}</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-hdd-network text-xl"></i>
+        </div>
+      </div>
+    </div>
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">С характеристиками</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ with_specs }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">из {{ total_items }}</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-cpu text-xl"></i>
+        </div>
+      </div>
+    </div>
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-slate-400">С указанной ОС</div>
+          <div class="text-3xl font-extrabold mt-1" data-count-up="{{ with_os }}">0</div>
+          <div class="text-xs text-slate-400 mt-2">из {{ total_items }}</div>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-slate-700/40 flex items-center justify-center">
+          <i class="bi bi-window-stack text-xl"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Графики: поликлиники + типы -->
+  <div class="grid grid-cols-1 lg:grid-cols-7 gap-3 mb-6">
+    <div class="lg:col-span-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
+        <div class="font-semibold flex items-center gap-2">
+          <i class="bi bi-building"></i>Техника по поликлиникам
+        </div>
+        <span class="text-xs px-2 py-1 rounded-full bg-slate-700/40">количество</span>
+      </div>
+      <div class="p-4" style="height: 320px;">
+        <canvas id="clinicChart"></canvas>
+      </div>
+    </div>
+    <div class="lg:col-span-3 bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+        <i class="bi bi-collection"></i>Типы техники
+      </div>
+      <div class="p-4 relative" style="height: 320px;">
+        <canvas id="techTypeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Графики: ОС + Dr.Web -->
+  <div class="grid grid-cols-1 lg:grid-cols-7 gap-3 mb-6">
+    <div class="lg:col-span-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+        <i class="bi bi-window-stack"></i>Операционные системы
+      </div>
+      <div class="p-4" style="height: 320px;">
+        <canvas id="osChart"></canvas>
+      </div>
+    </div>
+    <div class="lg:col-span-3 bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+        <i class="bi bi-shield-check"></i>Статус Dr.Web
+      </div>
+      <div class="p-4 relative" style="height: 320px;">
+        <canvas id="drwebChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Аудит -->
+  <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden mb-6">
+    <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
+      <div class="font-semibold flex items-center gap-2">
+        <i class="bi bi-bug"></i>Аудит: проблемные записи
+      </div>
+      <span class="text-xs px-2 py-1 rounded-full bg-slate-700/40">всего: {{ audit_total_problems }}</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-slate-400 border-b border-slate-700/50">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">Категория</th>
+            <th class="text-right px-4 py-3 font-medium" style="width: 120px;">Количество</th>
+            <th class="text-right px-4 py-3 font-medium" style="width: 140px;">Действие</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in audit_summary %}
+          <tr class="border-b border-slate-700/30 hover:bg-slate-700/20">
+            <td class="px-4 py-3 font-medium">{{ a.label }}</td>
+            <td class="px-4 py-3 text-right">
+              {% if a.count > 0 %}
+                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30">{{ a.count }}</span>
+              {% else %}
+                <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 border border-ok-500/30">0</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-right">
+              <a href="{{ url_for('audit') }}?cat={{ a.key }}"
+                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+                <i class="bi bi-arrow-right"></i>Открыть
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Последние записи -->
+  <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+      <i class="bi bi-clock-history"></i>Последние 10 записей
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-slate-400 border-b border-slate-700/50">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium" style="width: 60px;">ID</th>
+            <th class="text-left px-4 py-3 font-medium">Устройство</th>
+            <th class="text-left px-4 py-3 font-medium">Поликлиника</th>
+            <th class="text-left px-4 py-3 font-medium">Каб.</th>
+            <th class="text-left px-4 py-3 font-medium">Инв. №</th>
+            <th class="text-right px-4 py-3 font-medium">IP</th>
+            <th class="text-right px-4 py-3 font-medium" style="width: 80px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in recent_items %}
+          <tr class="border-b border-slate-700/30 hover:bg-slate-700/20">
+            <td class="px-4 py-2 font-semibold">{{ item.id }}</td>
+            <td class="px-4 py-2 font-semibold">
+              <a href="{{ url_for('item_detail', item_id=item.id) }}" class="hover:text-brand-500">{{ item.tech }}</a>
+            </td>
+            <td class="px-4 py-2">
+              <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ CLINICS.get(item.clinic, item.clinic) }}</span>
+            </td>
+            <td class="px-4 py-2">{{ item.cabinet }}</td>
+            <td class="px-4 py-2"><code class="text-slate-200">{{ item.inv_number }}</code></td>
+            <td class="px-4 py-2 text-right">
+              {% if item.ip %}
+                <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 text-xs">{{ item.ip }}</span>
+              {% else %}
+                <span class="text-slate-500">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2 text-right">
+              <a href="{{ url_for('item_detail', item_id=item.id) }}"
+                 class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 py-3 border-t border-slate-700/50">
+      <a href="{{ url_for('inventory') }}"
+         class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+        <i class="bi bi-arrow-right"></i>Открыть полную базу
+      </a>
+    </div>
+  </div>
+
+  <script id="chartDataJson" type="application/json">
+    {{
+      {
+        "clinicLabels": clinic_labels,
+        "clinicData": clinic_data,
+        "techTypeLabels": tech_type_labels,
+        "techTypeData": tech_type_data,
+        "drwebLabels": drweb_labels,
+        "drwebData": drweb_data,
+        "osLabels": os_labels,
+        "osData": os_data
+      } | tojson
+    }}
+  </script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  let initialized = false;
+
+  function initCharts() {
+    if (initialized) return;
+    initialized = true;
+
+    const raw = document.getElementById('chartDataJson')?.textContent?.trim() || '{}';
+    const data = JSON.parse(raw);
+
+    Chart.defaults.font.family = "Inter, ui-sans-serif, system-ui, sans-serif";
+    Chart.defaults.color = 'rgba(255,255,255,.82)';
+
+    const palette = ['#6ea8fe', '#a78bfa', '#34d399', '#fb7185', '#fbbf24', '#22d3ee', '#f97316', '#8b5cf6'];
+
+    function safeChart(id, cfg) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const ds = cfg?.data?.datasets?.[0]?.data;
+      if (Array.isArray(ds) && ds.length === 0) return;
+      const sum = Array.isArray(ds) ? ds.reduce((a, b) => a + Number(b || 0), 0) : 0;
+      if (sum === 0) return;
+      return new Chart(el, cfg);
+    }
+
+    const percentLabel = (ctx) => {
+      const v = Number(ctx.raw || 0);
+      const total = (ctx.dataset.data || []).reduce((a, b) => a + Number(b || 0), 0);
+      const pct = total ? Math.round((v / total) * 100) : 0;
+      return `${ctx.label}: ${pct}% (${v})`;
+    };
+
+    // 1. Поликлиники
+    safeChart('clinicChart', {
+      type: 'bar',
+      data: {
+        labels: data.clinicLabels || [],
+        datasets: [{
+          data: data.clinicData || [],
+          backgroundColor: 'rgba(110,168,254,.85)',
+          borderRadius: 10,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.10)' }, ticks: { color: 'rgba(255,255,255,.7)' } },
+          x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.7)' } },
+        },
+      },
+    });
+
+    // 2. Типы техники
+    safeChart('techTypeChart', {
+      type: 'doughnut',
+      data: {
+        labels: data.techTypeLabels || [],
+        datasets: [{
+          data: data.techTypeData || [],
+          backgroundColor: palette,
+          borderWidth: 3,
+          borderColor: 'rgba(11,18,32,.9)',
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '58%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.78)' } },
+          tooltip: { callbacks: { label: percentLabel } },
+        },
+      },
+    });
+
+    // 3. ОС
+    safeChart('osChart', {
+      type: 'bar',
+      data: {
+        labels: data.osLabels || [],
+        datasets: [{
+          data: data.osData || [],
+          backgroundColor: 'rgba(251,191,36,.85)',
+          borderRadius: 10,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.10)' }, ticks: { color: 'rgba(255,255,255,.7)' } },
+          y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.7)' } },
+        },
+      },
+    });
+
+    // 4. Dr.Web
+    safeChart('drwebChart', {
+      type: 'doughnut',
+      data: {
+        labels: data.drwebLabels || [],
+        datasets: [{
+          data: data.drwebData || [],
+          backgroundColor: ['rgba(52,211,153,.92)', 'rgba(251,113,133,.86)', 'rgba(251,191,36,.85)', 'rgba(110,168,254,.85)', 'rgba(255,255,255,.15)'],
+          borderWidth: 3,
+          borderColor: 'rgba(11,18,32,.9)',
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '58%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.78)' } },
+          tooltip: { callbacks: { label: percentLabel } },
+        },
+      },
+    });
+
+    // Count-up KPI
+    function animateCount(el) {
+      const target = Number(el.dataset.countUp || 0);
+      const duration = prefersReduced ? 0 : 700;
+      const start = performance.now();
+      const fmt = new Intl.NumberFormat('ru-RU');
+      function step(t) {
+        const p = duration ? Math.min((t - start) / duration, 1) : 1;
+        const e = 1 - Math.pow(1 - p, 3);
+        el.textContent = fmt.format(Math.round(target * e));
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    document.querySelectorAll('[data-count-up]').forEach(animateCount);
+  }
+
+  if (prefersReduced) {
+    initCharts();
+  } else {
+    window.setTimeout(initCharts, 60);
+  }
+</script>
+{% endblock %}

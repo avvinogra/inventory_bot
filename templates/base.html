@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Инвентаризация{% endblock %}</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink: {
+              50:  '#e6eaf3',
+              900: '#0b1220',
+              950: '#070b14',
+              800: '#0f1b33',
+            },
+            brand:  { 500: '#6ea8fe', 600: '#5b8de6', 700: '#4a7ad0' },
+            accent: { 500: '#a78bfa', 600: '#8b6fe0' },
+            ok:     { 500: '#34d399' },
+            warn:   { 500: '#fbbf24' },
+            bad:    { 500: '#fb7185' },
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}" />
+
+  {% if csrf_token %}
+  <!-- CSRF-токен для HTMX-запросов (X-CSRF-Token заголовок) -->
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% endif %}
+
+  <!-- Chart.js -->
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="bg-ink-950 text-slate-100 font-sans min-h-screen">
+  <!-- Декоративный фон -->
+  <div class="fixed inset-0 -z-10 pointer-events-none opacity-60"
+       style="background:
+         radial-gradient(1200px 500px at 20% 0%, rgba(110,168,254,.30), transparent 55%),
+         radial-gradient(900px 450px at 90% 20%, rgba(167,139,250,.25), transparent 55%),
+         radial-gradient(800px 420px at 30% 90%, rgba(52,211,153,.15), transparent 55%),
+         linear-gradient(180deg, #070b14 0%, #0b1220 100%);">
+  </div>
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar (desktop) -->
+    <aside class="hidden lg:flex flex-col w-64 border-r border-slate-700/50 bg-ink-900/40 backdrop-blur-md">
+      <div class="p-4 border-b border-slate-700/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <i class="bi bi-hospital text-xl text-ink-900"></i>
+          </div>
+          <div>
+            <div class="font-bold leading-tight">Инвентаризация</div>
+            <div class="text-xs text-slate-400">веб-панель</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex-1 p-3 space-y-1">
+        <a href="{{ url_for('dashboard') }}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors
+                  {% if request.url.path == '/' %}bg-gradient-to-r from-brand-500/20 to-accent-500/15 text-white border border-brand-500/30{% endif %}">
+          <i class="bi bi-speedometer2 text-lg"></i><span>Дашборд</span>
+        </a>
+        <a href="{{ url_for('inventory') }}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors
+                  {% if '/inventory' in request.url.path %}bg-gradient-to-r from-brand-500/20 to-accent-500/15 text-white border border-brand-500/30{% endif %}">
+          <i class="bi bi-database text-lg"></i><span>База</span>
+        </a>
+        <a href="{{ url_for('audit') }}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors
+                  {% if '/audit' in request.url.path %}bg-gradient-to-r from-brand-500/20 to-accent-500/15 text-white border border-brand-500/30{% endif %}">
+          <i class="bi bi-bug text-lg"></i><span>Аудит</span>
+        </a>
+        <a href="{{ url_for('arm_list') }}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors
+                  {% if '/arm' in request.url.path %}bg-gradient-to-r from-brand-500/20 to-accent-500/15 text-white border border-brand-500/30{% endif %}">
+          <i class="bi bi-diagram-3 text-lg"></i><span>АРМ</span>
+        </a>
+        <a href="{{ url_for('export') }}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors">
+          <i class="bi bi-file-earmark-excel text-lg"></i><span>Экспорт Excel</span>
+        </a>
+      </nav>
+
+      <div class="p-3 border-t border-slate-700/50 text-xs text-slate-500">
+        FastAPI • SQLite • Tailwind
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 min-w-0">
+      <!-- Topbar -->
+      <header class="sticky top-0 z-20 flex items-center justify-between px-4 lg:px-6 py-3 border-b border-slate-700/50 bg-ink-950/60 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+          <button class="lg:hidden text-slate-300 hover:text-white" type="button"
+                  onclick="document.getElementById('mobileNav').classList.toggle('hidden')">
+            <i class="bi bi-list text-xl"></i>
+          </button>
+          <h1 class="text-lg font-bold">{% block page_title %}{% endblock %}</h1>
+        </div>
+        <div class="flex items-center gap-2">
+          {% block topbar_actions %}{% endblock %}
+          {% if needs_password and authed %}
+          <form method="POST" action="{{ url_for('logout') }}">
+            <button class="text-sm px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 hover:text-white">
+              <i class="bi bi-box-arrow-right me-1"></i>Выйти
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- Mobile nav -->
+      <div id="mobileNav" class="hidden lg:hidden border-b border-slate-700/50 bg-ink-900/60 backdrop-blur-md p-3 space-y-1">
+        <a href="{{ url_for('dashboard') }}" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700/40">Дашборд</a>
+        <a href="{{ url_for('inventory') }}" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700/40">База</a>
+        <a href="{{ url_for('audit') }}" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700/40">Аудит</a>
+        <a href="{{ url_for('arm_list') }}" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700/40">АРМ</a>
+        <a href="{{ url_for('export') }}" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700/40">Экспорт Excel</a>
+      </div>
+
+      <!-- Content -->
+      <main class="p-4 lg:p-6 max-w-[1600px] mx-auto">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- JS: HTMX CSRF для всех POST/DELETE/PATCH/PUT запросов -->
+  {% if csrf_token %}
+  <script>
+    document.addEventListener('htmx:configRequest', function(event) {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content;
+      if (token && ['POST', 'DELETE', 'PATCH', 'PUT'].includes((event.detail.verb || '').toUpperCase())) {
+        event.detail.headers['X-CSRF-Token'] = token;
+      }
+    });
+  </script>
+  {% endif %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Telegram Bot Framework
+aiogram>=3.0.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Excel Export / Import
+openpyxl>=3.1.5
+pandas>=2.0.0
+
+# Опционально: SOCKS5-прокси (нужен только если в .env задан SOCKS5_PROXY)
+aiohttp-socks>=0.9.0
+
+# Опционально: FSM storage на Redis (нужен только если в .env задан REDIS_URL).
+# Без REDIS_URL бот работает на MemoryStorage (состояния в RAM).
+redis>=4.0.0
+
+# Веб-панель (web_app.py) — FastAPI + uvicorn.
+# Сам бот (bot.py) эти пакеты НЕ использует — только web_app.py.
+fastapi>=0.110.0
+uvicorn>=0.27.0
+jinja2>=3.1.0
+python-multipart>=0.0.6
+itsdangerous>=2.1.0
+
+# Безопасность веб-панели: bcrypt-хэш пароля (если WEB_PANEL_PASSWORD задан как хэш).
+bcrypt>=4.0.0

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Запись #{{ item.id }} • Инвентаризация{% endblock %}
+{% block page_title %}Запись #{{ item.id }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('inventory') }}"
+     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+    <i class="bi bi-arrow-left"></i>К базе
+  </a>
+{% endblock %}
+
+{% block content %}
+  <!-- Предупреждение о несовпадении MAC -->
+  {% if item.mac_phys and item.mac_real and item.mac_phys|lower != item.mac_real|lower %}
+  <div class="bg-warn-500/15 border border-warn-500/30 text-warn-500 rounded-2xl p-4 mb-4 flex items-start gap-3">
+    <i class="bi bi-exclamation-triangle-fill text-xl mt-0.5"></i>
+    <div>
+      <div class="font-semibold">Физический MAC ≠ Реальный MAC</div>
+      <div class="text-sm text-slate-300 mt-1">
+        Физический MAC ({{ item.mac_phys }}) отличается от реального MAC ({{ item.mac_real }}).
+        По нормативу они должны совпадать.
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between flex-wrap gap-2">
+      <div class="font-semibold flex items-center gap-2">
+        <i class="bi bi-hdd"></i>{{ item.tech }}
+      </div>
+      <form action="{{ url_for('delete_item', item_id=item.id) }}" method="POST"
+            onsubmit="return confirm('Удалить запись #{{ item.id }} — {{ item.tech }}?');"
+            class="d-inline">
+        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+        <button type="submit"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-bad-500/30 bg-bad-500/10 hover:bg-bad-500/20 text-bad-500 text-sm">
+          <i class="bi bi-trash"></i>Удалить
+        </button>
+      </form>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-slate-700/50">
+      <!-- Левая колонка -->
+      <div class="bg-slate-800/40 p-4 space-y-3">
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">ID</span>
+          <span class="font-semibold">{{ item.id }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Поликлиника</span>
+          <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ CLINICS.get(item.clinic, item.clinic) }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Номер кабинета</span>
+          <span class="font-semibold">{{ item.cabinet or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Тип</span>
+          <span>
+            {% if item.tech_type %}
+              <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ TECH_TYPE_LABELS.get(item.tech_type, item.tech_type) }}</span>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Марка, модель</span>
+          <span class="font-semibold">{{ item.tech or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Инвентарный номер</span>
+          <code class="text-slate-200">{{ item.inv_number or '—' }}</code>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Серийный номер</span>
+          <code class="text-slate-200">{{ item.serial or '—' }}</code>
+        </div>
+      </div>
+
+      <!-- Правая колонка -->
+      <div class="bg-slate-800/40 p-4 space-y-3">
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Операционная система</span>
+          <span>{{ item.os or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Dr.Web</span>
+          <span>
+            {% if item.drweb %}
+              {% set drweb_l = item.drweb|lower %}
+              {% if 'Установлен' in item.drweb or drweb_l == '+' %}
+                <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 border border-ok-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% elif 'Не установлен' in item.drweb or drweb_l == 'нет' %}
+                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-slate-400 border border-slate-700 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% elif 'Нет лицензии' in item.drweb or 'нет лиц' in drweb_l %}
+                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% elif 'Нет соединения' in item.drweb or 'нет соед' in drweb_l %}
+                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
+              {% else %}
+                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ item.drweb }}</span>
+              {% endif %}
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">IP-адрес</span>
+          <span>
+            {% if item.ip %}
+              <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 text-xs">{{ item.ip }}</span>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Имя компьютера</span>
+          <span>
+            {% if item.pc_name %}
+              <code class="text-slate-200">{{ item.pc_name }}</code>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Физический MAC</span>
+          <code class="text-slate-200">{{ item.mac_phys or '—' }}</code>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Реальный MAC</span>
+          <span>
+            {% if item.mac_real %}
+              <code class="text-slate-200">{{ item.mac_real }}</code>
+              {% if item.mac_phys and item.mac_phys|lower != item.mac_real|lower %}
+                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs ms-2">
+                  <i class="bi bi-exclamation-triangle me-1"></i>MAC не совпадают
+                </span>
+              {% endif %}
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Характеристики</span>
+          <span>{{ item.specs or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Дополнительно</span>
+          <span>{{ item.note or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Дата создания</span>
+          <span class="text-xs">{{ item.created_at or '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-2 mt-4">
+    <a href="{{ url_for('inventory') }}"
+       class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+      <i class="bi bi-arrow-left"></i>К базе
+    </a>
+    <a href="{{ url_for('audit') }}"
+       class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+      <i class="bi bi-bug"></i>Аудит
+    </a>
+  </div>
+{% endblock %}

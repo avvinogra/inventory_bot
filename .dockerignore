@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Виртуальные окружения
+venv/
+.venv/
+env/
+ENV/
+
+# IDE / редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Операционная система
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Данные (volume-mounted, не должны попадать в образ)
+data/
+logs/
+labels/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Конфигурация (чувствительные данные)
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# Docker (чтобы не было циклов)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Архивы
+*.zip
+*.tar.gz
+*.tgz
+*.7z
+
+# Документация (не нужна в образе)
+README.md
+*.md
