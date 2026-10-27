@@ -1,15 +1,15 @@
 """
 Экспорт данных из БД в Excel — с группировкой по кабинетам.
 
-Формат: для каждого кабинета — отдельный блок:
-  - Строка-заголовок «Каб. 102/1» (объединённая, цветная)
-  - Строка с названиями колонок
-  - Строки с устройствами этого кабинета
-  - Пустая строка-разделитель
+Два типа вывода:
+  1. Если записи объединены в АРМ — они идут под общим заголовком АРМ
+     с перечнем всех устройств.
+  2. Если записи не в АРМ — идут под заголовком кабинета как обычно.
 
-Колонки:
-  Тип | Марка, модель | Инв. № | Сер. № | ОС | Dr.Web |
-  IP-адрес | Имя ПК | Физ. MAC | Реал. MAC | Характеристики | Дополнительно | АРМ
+Колонки (без колонки АРМ):
+  № | Кабинет | Тип | Марка, модель | Инв. № | Сер. № | ОС |
+  Dr.Web | IP-адрес | Имя ПК | Физ. MAC | Реал. MAC |
+  Характеристики | Дополнительно
 """
 import os
 import sqlite3
@@ -21,24 +21,27 @@ from openpyxl.utils import get_column_letter
 
 import config
 
-# Колонки данных (без № и кабинета — они в заголовке блока)
+# Колонки данных
 HEADERS = [
-    "Тип",                     # 1
-    "Марка, модель",           # 2
-    "Инв. №",                  # 3
-    "Сер. №",                  # 4
-    "ОС",                      # 5
-    "Dr.Web",                  # 6
-    "IP-адрес",                # 7
-    "Имя ПК",                  # 8
-    "Физ. MAC",                # 9
-    "Реал. MAC",               # 10
-    "Характеристики",          # 11
-    "Дополнительно",           # 12
-    "АРМ",                     # 13
+    "№",                       # 1
+    "Кабинет",                 # 2
+    "Тип",                     # 3
+    "Марка, модель",           # 4
+    "Инв. №",                  # 5
+    "Сер. №",                  # 6
+    "ОС",                      # 7
+    "Dr.Web",                  # 8
+    "IP-адрес",                # 9
+    "Имя ПК",                  # 10
+    "Физ. MAC",                # 11
+    "Реал. MAC",               # 12
+    "Характеристики",          # 13
+    "Дополнительно",           # 14
 ]
 
 COLUMN_MAP = [
+    None,      # № — генерируется
+    "cabinet",
     "tech_type",
     "tech",
     "inv_number",
@@ -51,7 +54,6 @@ COLUMN_MAP = [
     "mac_real",
     "specs",
     "note",
-    "arm_id",
 ]
 
 TECH_TYPE_LABELS = {
@@ -64,12 +66,13 @@ TECH_TYPE_LABELS = {
 
 # === ЦВЕТА ===
 CAB_HEADER_FILL = PatternFill(start_color="2F543B", end_color="2F543B", fill_type="solid")
+ARM_HEADER_FILL = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
 COL_HEADER_FILL = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
 SERIAL_INV_FILL = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
 IP_MAC_FILL = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
-ARM_FILL = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
 
 CAB_HEADER_FONT = Font(bold=True, size=12, color="FFFFFF")
+ARM_HEADER_FONT = Font(bold=True, size=12, color="FFFFFF")
 COL_HEADER_FONT = Font(bold=True, size=10, color="FFFFFF")
 CELL_FONT = Font(size=10)
 
@@ -83,7 +86,7 @@ BORDER = Border(
     bottom=Side(style='thin'),
 )
 
-COLUMN_WIDTHS = [18, 28, 20, 20, 20, 18, 16, 20, 20, 20, 28, 28, 8]
+COLUMN_WIDTHS = [5, 12, 18, 28, 20, 20, 20, 18, 16, 20, 20, 20, 28, 28]
 
 DRWEB_DISPLAY_MAP = {
     "Установлен":                "Установлен",
@@ -120,13 +123,42 @@ def _cell_value(row: dict, db_field: str) -> str:
         val = _human_tech_type(val)
     if db_field == "drweb":
         val = _human_drweb(val)
-    if db_field == "arm_id" and val:
-        val = f"#{val}"
     return str(val)
 
 
+def _write_header_row(ws, row_idx, headers, fill, font):
+    """Записывает строку заголовков колонок."""
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=row_idx, column=col, value=header)
+        cell.fill = fill
+        cell.font = font
+        cell.alignment = HEADER_ALIGN
+        cell.border = BORDER
+
+
+def _write_data_row(ws, row_idx, row_data, num_counter):
+    """Записывает строку с данными устройства."""
+    for col_idx, db_field in enumerate(COLUMN_MAP, 1):
+        if db_field is None:
+            # № по порядку
+            val = num_counter
+        else:
+            val = _cell_value(row_data, db_field)
+
+        cell = ws.cell(row=row_idx, column=col_idx, value=val)
+        cell.alignment = CELL_ALIGN
+        cell.border = BORDER
+        cell.font = CELL_FONT
+
+        # Подсветка
+        if db_field in ("serial", "inv_number"):
+            cell.fill = SERIAL_INV_FILL
+        elif db_field in ("ip", "mac_phys", "mac_real") and val:
+            cell.fill = IP_MAC_FILL
+
+
 def export_to_excel(output_path: str = None) -> str:
-    """Экспорт с группировкой по кабинетам."""
+    """Экспорт с группировкой: АРМ — отдельным блоком, без АРМ — по кабинетам."""
     if output_path is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = f"data/inventory_export_{timestamp}.xlsx"
@@ -145,8 +177,11 @@ def export_to_excel(output_path: str = None) -> str:
         print("База данных пуста!")
         return None
 
+    from config import CLINICS
+
     wb = Workbook()
     wb.remove(wb.active)
+    num_cols = len(HEADERS)
 
     # Группируем по поликлиникам
     clinics = []
@@ -157,71 +192,91 @@ def export_to_excel(output_path: str = None) -> str:
             seen.add(c)
             clinics.append(c)
 
-    from config import CLINICS
-
     for clinic in clinics:
         clinic_rows = [r for r in rows if (r.get("clinic") or "—") == clinic]
         sheet_title = (clinic or "—")[:31]
         ws = wb.create_sheet(title=sheet_title)
 
         row_idx = 1
-        num_cols = len(HEADERS)
+        counter = 1  # сквозная нумерация
 
-        # Группируем по кабинетам
+        # === 1. ЗАПИСИ В АРМ ===
+        # Группируем по arm_id
+        arm_groups = {}
+        for r in clinic_rows:
+            arm = r.get("arm_id")
+            if arm:
+                if arm not in arm_groups:
+                    arm_groups[arm] = []
+                arm_groups[arm].append(r)
+
+        # Записи с АРМ — выводим отдельными блоками
+        for arm_id in sorted(arm_groups.keys()):
+            arm_items = arm_groups[arm_id]
+
+            # Заголовок АРМ
+            ws.merge_cells(start_row=row_idx, start_column=1,
+                           end_row=row_idx, end_column=num_cols)
+            cab = arm_items[0].get("cabinet") or "—"
+            cell = ws.cell(row=row_idx, column=1,
+                          value=f"АРМ #{arm_id} — каб. {cab} — {len(arm_items)} шт.")
+            cell.fill = ARM_HEADER_FILL
+            cell.font = ARM_HEADER_FONT
+            cell.alignment = Alignment(horizontal='left', vertical='center')
+            for c in range(1, num_cols + 1):
+                ws.cell(row=row_idx, column=c).border = BORDER
+            row_idx += 1
+
+            # Заголовки колонок
+            _write_header_row(ws, row_idx, HEADERS, COL_HEADER_FILL, COL_HEADER_FONT)
+            row_idx += 1
+
+            # Данные
+            for item in arm_items:
+                _write_data_row(ws, row_idx, item, counter)
+                counter += 1
+                row_idx += 1
+
+            # Пустая строка
+            row_idx += 1
+
+        # === 2. ЗАПИСИ БЕЗ АРМ — по кабинетам ===
+        no_arm_rows = [r for r in clinic_rows if not r.get("arm_id")]
+
+        # Группируем по кабинету
         cabinets = []
         cab_seen = set()
-        for r in clinic_rows:
+        for r in no_arm_rows:
             cab = r.get("cabinet") or "—"
             if cab not in cab_seen:
                 cab_seen.add(cab)
                 cabinets.append(cab)
 
         for cab in cabinets:
-            cab_rows = [r for r in clinic_rows if (r.get("cabinet") or "—") == cab]
+            cab_rows = [r for r in no_arm_rows if (r.get("cabinet") or "—") == cab]
 
-            # === Строка-заголовок кабинета ===
+            # Заголовок кабинета
             ws.merge_cells(start_row=row_idx, start_column=1,
                            end_row=row_idx, end_column=num_cols)
             cell = ws.cell(row=row_idx, column=1, value=f"Каб. {cab}")
             cell.fill = CAB_HEADER_FILL
             cell.font = CAB_HEADER_FONT
             cell.alignment = Alignment(horizontal='left', vertical='center')
-            # Рамка для объединённой строки
             for c in range(1, num_cols + 1):
                 ws.cell(row=row_idx, column=c).border = BORDER
-
             row_idx += 1
 
-            # === Строка с названиями колонок ===
-            for col, header in enumerate(HEADERS, 1):
-                cell = ws.cell(row=row_idx, column=col, value=header)
-                cell.fill = COL_HEADER_FILL
-                cell.font = COL_HEADER_FONT
-                cell.alignment = HEADER_ALIGN
-                cell.border = BORDER
-
+            # Заголовки колонок
+            _write_header_row(ws, row_idx, HEADERS, COL_HEADER_FILL, COL_HEADER_FONT)
             row_idx += 1
 
-            # === Строки с устройствами ===
-            for row in cab_rows:
-                for col_idx, db_field in enumerate(COLUMN_MAP, 1):
-                    val = _cell_value(row, db_field)
-                    cell = ws.cell(row=row_idx, column=col_idx, value=val)
-                    cell.alignment = CELL_ALIGN
-                    cell.border = BORDER
-                    cell.font = CELL_FONT
-
-                    # Подсветка
-                    if db_field in ("serial", "inv_number"):
-                        cell.fill = SERIAL_INV_FILL
-                    elif db_field in ("ip", "mac_phys", "mac_real") and val:
-                        cell.fill = IP_MAC_FILL
-                    elif db_field == "arm_id" and val:
-                        cell.fill = ARM_FILL
-
+            # Данные
+            for item in cab_rows:
+                _write_data_row(ws, row_idx, item, counter)
+                counter += 1
                 row_idx += 1
 
-            # === Пустая строка-разделитель ===
+            # Пустая строка
             row_idx += 1
 
         # === Ширина колонок ===
