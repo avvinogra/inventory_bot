@@ -6,22 +6,22 @@
 {% block topbar_actions %}
   <a href="{{ url_for('arm_create_form') }}"
      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm">
-    <i class="bi bi-plus-lg"></i>Создать АРМ
+    <i class="bi bi-plus-lg"></i> Создать АРМ
   </a>
 {% endblock %}
 
 {% block content %}
   <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
     <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
-      <i class="bi bi-diagram-3"></i>Список АРМ
+      <i class="bi bi-diagram-3"></i> Список АРМ
       <span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-700/40">всего: {{ arms|length }}</span>
     </div>
     {% if arms|length == 0 %}
     <div class="p-8 text-center text-slate-500">
       <i class="bi bi-diagram-3 text-2xl block mb-2"></i>
       Нет созданных АРМ.<br>
-      <a href="{{ url_for('arm_create_form') }}" class="text-brand-500 hover:underline">➕ Создать АРМ</a>
-      или через бота: ⚙️ Администрирование → 🔗 АРМ → ➕ Создать АРМ
+      <a href="{{ url_for('arm_create_form') }}" class="text-brand-500 hover:underline">Создать АРМ</a>
+      или через бота: Администрирование - АРМ - Создать АРМ
     </div>
     {% else %}
     <div class="overflow-x-auto">
@@ -59,13 +59,13 @@
   <div class="flex gap-2 mt-4">
     <a href="{{ url_for('arm_create_form') }}"
        class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm">
-      <i class="bi bi-plus-lg"></i>Создать АРМ
+      <i class="bi bi-plus-lg"></i> Создать АРМ
     </a>
     <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
-      <i class="bi bi-arrow-left"></i>Дашборд
+      <i class="bi bi-arrow-left"></i> Дашборд
     </a>
     <a href="{{ url_for('inventory') }}" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
-      <i class="bi bi-database"></i>База
+      <i class="bi bi-database"></i> База
     </a>
   </div>
 {% endblock %}

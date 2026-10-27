@@ -717,6 +717,62 @@ async def arm_detail(arm_id: int, request: Request):
     return templates.TemplateResponse(request, "arm_detail.html", ctx)
 
 
+@app.get("/arm/{arm_id}/add", response_class=HTMLResponse)
+async def arm_add_items(arm_id: int, request: Request):
+    """Страница добавления записей в существующий АРМ."""
+    require_auth(request)
+    items = db.get_arm_items(arm_id)
+    if not items:
+        raise HTTPException(status_code=404, detail="АРМ не найден")
+    # Записи, не входящие ни в один АРМ
+    free_items = db.get_items_without_arm(limit=200)
+    ctx = _base_context(request)
+    ctx.update({
+        "arm_id": arm_id,
+        "items": items,
+        "free_items": free_items,
+    })
+    return templates.TemplateResponse(request, "arm_add.html", ctx)
+
+
+@app.post("/arm/{arm_id}/add", response_class=HTMLResponse)
+async def arm_add_submit(
+    arm_id: int,
+    request: Request,
+    _: None = Depends(csrf_protect),
+):
+    """Добавление выбранных записей в АРМ."""
+    require_auth(request)
+    form = await request.form()
+    item_ids = form.getlist("item_ids")
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="Не выбрано ни одной записи")
+    for item_id_str in item_ids:
+        try:
+            item_id = int(item_id_str)
+            db.add_to_arm(item_id, arm_id)
+        except (ValueError, Exception):
+            pass
+    return RedirectResponse(request.url_for("arm_detail", arm_id=arm_id), status_code=303)
+
+
+@app.delete("/arm/{arm_id}/disband")
+async def arm_disband(arm_id: int, request: Request, _: None = Depends(csrf_protect)):
+    """Расформировать АРМ."""
+    require_auth(request)
+    db.delete_arm(arm_id)
+    return RedirectResponse(request.url_for("arm_list"), status_code=303)
+
+
+@app.delete("/arm/item/{item_id}")
+async def arm_remove_item(item_id: int, request: Request, _: None = Depends(csrf_protect)):
+    """Убрать запись из АРМ (HTMX)."""
+    require_auth(request)
+    db.remove_from_arm(item_id)
+    # Возвращаем пустую строку — HTMX уберёт строку из DOM
+    return Response(status_code=200, content="")
+
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request):
     if not config.WEB_PANEL_PASSWORD:
