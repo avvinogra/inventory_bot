@@ -457,6 +457,7 @@ async def admin_arm_create_start(callback: types.CallbackQuery, state: FSMContex
         return
 
     await state.update_data(arm_creating=True)
+    await state.set_state(InventoryForm.admin_arm_select_clinic)
     await upsert_ui_message(
         callback.message,
         state,
@@ -465,7 +466,7 @@ async def admin_arm_create_start(callback: types.CallbackQuery, state: FSMContex
     )
 
 
-@router.callback_query(F.data.startswith("clinic_"), InventoryForm.selecting_clinic)
+@router.callback_query(F.data.startswith("clinic_"), InventoryForm.admin_arm_select_clinic)
 async def admin_arm_clinic_selected(callback: types.CallbackQuery, state: FSMContext):
     """Выбрана поликлиника для создания АРМ — показать записи без АРМ."""
     data = await state.get_data()

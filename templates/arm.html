@@ -3,6 +3,13 @@
 {% block title %}АРМ • Инвентаризация{% endblock %}
 {% block page_title %}АРМ{% endblock %}
 
+{% block topbar_actions %}
+  <a href="{{ url_for('arm_create_form') }}"
+     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm">
+    <i class="bi bi-plus-lg"></i>Создать АРМ
+  </a>
+{% endblock %}
+
 {% block content %}
   <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
     <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
@@ -13,7 +20,8 @@
     <div class="p-8 text-center text-slate-500">
       <i class="bi bi-diagram-3 text-2xl block mb-2"></i>
       Нет созданных АРМ.<br>
-      Создайте через бота: ⚙️ Администрирование → 🔗 АРМ → ➕ Создать АРМ
+      <a href="{{ url_for('arm_create_form') }}" class="text-brand-500 hover:underline">➕ Создать АРМ</a>
+      или через бота: ⚙️ Администрирование → 🔗 АРМ → ➕ Создать АРМ
     </div>
     {% else %}
     <div class="overflow-x-auto">
@@ -49,6 +57,10 @@
   </div>
 
   <div class="flex gap-2 mt-4">
+    <a href="{{ url_for('arm_create_form') }}"
+       class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm">
+      <i class="bi bi-plus-lg"></i>Создать АРМ
+    </a>
     <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
       <i class="bi bi-arrow-left"></i>Дашборд
     </a>

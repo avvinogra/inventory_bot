@@ -654,6 +654,54 @@ async def arm_list(request: Request):
     return templates.TemplateResponse(request, "arm.html", ctx)
 
 
+@app.get("/arm/create", response_class=HTMLResponse)
+async def arm_create_form(request: Request):
+    """Форма создания АРМ — список всех записей с чекбоксами."""
+    require_auth(request)
+    with get_db_connection() as conn:
+        items = conn.execute(
+            "SELECT * FROM inventory ORDER BY id DESC LIMIT 500"
+        ).fetchall()
+    ctx = _base_context(request)
+    ctx.update({"items": items})
+    return templates.TemplateResponse(request, "arm_create.html", ctx)
+
+
+@app.post("/arm/create")
+async def arm_create_submit(
+    request: Request,
+    _: None = Depends(csrf_protect),
+):
+    """Создание АРМ из выбранных записей (POST-форма с чекбоксами)."""
+    require_auth(request)
+    form = await request.form()
+    selected = form.getlist("item_ids")
+    ids = []
+    for s in selected:
+        try:
+            ids.append(int(s))
+        except (TypeError, ValueError):
+            continue
+
+    if not ids:
+        with get_db_connection() as conn:
+            items = conn.execute(
+                "SELECT * FROM inventory ORDER BY id DESC LIMIT 500"
+            ).fetchall()
+        ctx = _base_context(request)
+        ctx.update({"items": items, "error": "Не выбрано ни одной записи"})
+        return templates.TemplateResponse(
+            request, "arm_create.html", ctx, status_code=400
+        )
+
+    arm_id = db.create_arm(ids)
+    if arm_id <= 0:
+        raise HTTPException(status_code=500, detail="Ошибка создания АРМ")
+    return RedirectResponse(
+        request.url_for("arm_detail", arm_id=arm_id), status_code=303
+    )
+
+
 @app.get("/arm/{arm_id}", response_class=HTMLResponse)
 async def arm_detail(arm_id: int, request: Request):
     """Просмотр конкретного АРМ."""
@@ -781,7 +829,7 @@ async def update_item(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка обновления: {e}")
 
-    return RedirectResponse(url_for('item_detail', item_id=item_id), status_code=303)
+    return RedirectResponse(request.url_for('item_detail', item_id=item_id), status_code=303)
 
 
 # ============================================================

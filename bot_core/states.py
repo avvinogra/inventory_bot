@@ -45,3 +45,6 @@ class InventoryForm(StatesGroup):
     admin_view_count = State()
     admin_delete_id = State()
     admin_delete_inv = State()
+
+    # --- Создание АРМ (выбор поликлиники) ---
+    admin_arm_select_clinic = State()

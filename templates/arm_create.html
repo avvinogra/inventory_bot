@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Создать АРМ • Инвентаризация{% endblock %}
+{% block page_title %}Создать АРМ{% endblock %}
+
+{% block content %}
+  <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden mb-4">
+    <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+      <i class="bi bi-diagram-3"></i>Объединить записи в АРМ
+      <span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-700/40">записей: {{ items|length }}</span>
+    </div>
+    <div class="p-4 text-sm text-slate-300">
+      Отметьте записи, которые нужно объединить в один АРМ (обычно это
+      оборудование одного кабинета — системный блок + монитор + принтер).
+      Записи, уже привязанные к АРМ, выделены серым.
+    </div>
+    {% if error %}
+    <div class="px-4 pb-3">
+      <div class="rounded-lg border border-bad-500/30 bg-bad-500/10 text-bad-500 px-3 py-2 text-sm">
+        <i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <form method="POST" action="{{ url_for('arm_create_submit') }}" id="arm-create-form">
+    {% if csrf_token %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% endif %}
+
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+      {% if items|length == 0 %}
+      <div class="p-8 text-center text-slate-500">
+        <i class="bi bi-database-slash text-2xl block mb-2"></i>
+        В базе нет записей
+      </div>
+      {% else %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-slate-400 border-b border-slate-700/50">
+            <tr>
+              <th class="text-center px-3 py-3 font-medium" style="width: 48px;">
+                <input type="checkbox" id="select-all" class="w-4 h-4 accent-brand-500 cursor-pointer"
+                       title="Выделить все видимые записи">
+              </th>
+              <th class="text-left px-3 py-3 font-medium">ID</th>
+              <th class="text-left px-3 py-3 font-medium">Поликлиника</th>
+              <th class="text-left px-3 py-3 font-medium">Каб.</th>
+              <th class="text-left px-3 py-3 font-medium">Тип</th>
+              <th class="text-left px-3 py-3 font-medium">Марка, модель</th>
+              <th class="text-left px-3 py-3 font-medium">Инв. №</th>
+              <th class="text-left px-3 py-3 font-medium hidden xl:table-cell">Серийный</th>
+              <th class="text-left px-3 py-3 font-medium hidden lg:table-cell">АРМ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr class="border-b border-slate-700/30 hover:bg-slate-700/20
+                       {% if item.arm_id %}opacity-60{% endif %}">
+              <td class="px-3 py-2 text-center">
+                <input type="checkbox" name="item_ids" value="{{ item.id }}"
+                       class="arm-item-checkbox w-4 h-4 accent-brand-500 cursor-pointer"
+                       {% if item.arm_id %}disabled{% endif %}>
+              </td>
+              <td class="px-3 py-2 font-semibold">{{ item.id }}</td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ CLINICS.get(item.clinic, item.clinic) }}</span>
+              </td>
+              <td class="px-3 py-2">{{ item.cabinet or '—' }}</td>
+              <td class="px-3 py-2">
+                {% if item.tech_type %}
+                  <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ TECH_TYPE_LABELS.get(item.tech_type, item.tech_type) }}</span>
+                {% else %}
+                  <span class="text-slate-500">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 font-semibold">
+                <a href="{{ url_for('item_detail', item_id=item.id) }}" class="hover:text-brand-500" target="_blank" rel="noopener">{{ item.tech or '—' }}</a>
+              </td>
+              <td class="px-3 py-2"><code class="text-slate-200">{{ item.inv_number or '—' }}</code></td>
+              <td class="px-3 py-2 hidden xl:table-cell">{{ item.serial or '—' }}</td>
+              <td class="px-3 py-2 hidden lg:table-cell">
+                {% if item.arm_id %}
+                  <a href="{{ url_for('arm_detail', arm_id=item.arm_id) }}"
+                     class="px-2 py-1 rounded-full bg-accent-500/20 text-accent-500 border border-accent-500/30 text-xs">
+                    #{{ item.arm_id }}
+                  </a>
+                {% else %}
+                  <span class="text-slate-500">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-4 py-3 border-t border-slate-700/50 flex flex-wrap items-center gap-3">
+        <span class="text-xs text-slate-400">
+          Выбрано: <span id="selected-count" class="font-semibold text-brand-500">0</span> записей
+        </span>
+        <span class="text-xs text-slate-500 ml-auto">Показано: {{ items|length }} записей (макс. 500)</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="flex flex-wrap gap-2 mt-4 sticky bottom-0 bg-ink-950/80 backdrop-blur-md py-3 -mx-4 px-4 lg:-mx-6 lg:px-6 border-t border-slate-700/50">
+      <button type="submit"
+              class="inline-flex items-center gap-1 px-4 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium">
+        <i class="bi bi-diagram-3"></i>Создать АРМ
+      </button>
+      <button type="button" id="reset-btn"
+              class="inline-flex items-center gap-1 px-3 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+        <i class="bi bi-arrow-counterclockwise"></i>Сбросить
+      </button>
+      <a href="{{ url_for('arm_list') }}"
+         class="inline-flex items-center gap-1 px-3 py-2.5 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+        <i class="bi bi-arrow-left"></i>К списку АРМ
+      </a>
+    </div>
+  </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.getElementById('arm-create-form');
+    if (!form) return;
+    const checkboxes = Array.from(form.querySelectorAll('.arm-item-checkbox'));
+    const selectAll = document.getElementById('select-all');
+    const counter = document.getElementById('selected-count');
+    const resetBtn = document.getElementById('reset-btn');
+
+    function updateCounter() {
+      if (!counter) return;
+      counter.textContent = checkboxes.filter(cb => cb.checked).length;
+    }
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function () {
+        checkboxes.forEach(cb => {
+          if (!cb.disabled) cb.checked = selectAll.checked;
+        });
+        updateCounter();
+      });
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', updateCounter));
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        checkboxes.forEach(cb => { if (!cb.disabled) cb.checked = false; });
+        if (selectAll) selectAll.checked = false;
+        updateCounter();
+      });
+    }
+
+    form.addEventListener('submit', function (e) {
+      const any = checkboxes.some(cb => cb.checked);
+      if (!any) {
+        e.preventDefault();
+        alert('Отметьте хотя бы одну запись для создания АРМ.');
+      }
+    });
+
+    updateCounter();
+  })();
+</script>
+{% endblock %}
