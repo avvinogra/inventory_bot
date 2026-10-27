@@ -310,20 +310,21 @@ async def process_serial(message: types.Message, state: FSMContext):
     await delete_user_message(message)
     text = message.text.strip()
     if not text:
-        await upsert_ui_message(
-            message,
-            state,
-            "❌ Серийный номер не может быть пустым.\n🔢 Введите серийный номер:",
-            reply_markup=get_skip_cancel_keyboard(),
-        )
+        await state.update_data(serial="")
+        await _after_field_input(message, state, "serial", "")
         return
+
     await state.update_data(serial=text)
     data = await state.get_data()
 
-    # Если мы в режиме правки поля НОВОЙ записи (из карточки подтверждения) —
-    # проверка дубликатов не нужна.
     if data.get("editing_field") == "serial":
         await _after_field_input(message, state, "serial", text)
+        return
+
+    # НЕ проверяем дубликаты для значений «Отсутствует» / «нет» / пустых
+    text_lower = text.lower()
+    if text_lower in ("отсутствует", "нет", "без номера", "—", "-"):
+        await next_field(message, state, data, "serial")
         return
 
     # Проверка дубликатов по серийному номеру.
@@ -391,20 +392,21 @@ async def process_inv(message: types.Message, state: FSMContext):
     await delete_user_message(message)
     text = message.text.strip()
     if not text:
-        await upsert_ui_message(
-            message,
-            state,
-            "❌ Инвентарный номер не может быть пустым.\n🏷️ Введите инвентарный номер:",
-            reply_markup=get_skip_cancel_keyboard(),
-        )
+        await state.update_data(inv="")
+        await _after_field_input(message, state, "inv", "")
         return
+
     await state.update_data(inv=text)
     data = await state.get_data()
 
-    # Если мы в режиме правки поля НОВОЙ записи (из карточки подтверждения) —
-    # проверка дубликатов не нужна.
     if data.get("editing_field") == "inv":
         await _after_field_input(message, state, "inv", text)
+        return
+
+    # НЕ проверяем дубликаты для значений «Отсутствует» / «нет» / пустых
+    text_lower = text.lower()
+    if text_lower in ("отсутствует", "нет", "без номера", "—", "-"):
+        await next_field(message, state, data, "inv")
         return
 
     # Проверка дубликатов по инв. номеру.

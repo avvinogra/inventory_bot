@@ -286,6 +286,43 @@ async def skip_field(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer("⚠️ Неизвестное поле", show_alert=True)
 
 
+@router.callback_query(F.data == "field_absent")
+async def field_absent(callback: types.CallbackQuery, state: FSMContext):
+    """Пользователь нажал «Отсутствует» — нет инв. номера / серийного.
+    Сохраняет значение «Отсутствует» БЕЗ проверки дубликатов.
+    """
+    await callback.answer()
+    current_state = await state.get_state()
+    data = await state.get_data()
+    current_field = STATE_TO_FIELD.get(current_state)
+
+    if not current_field:
+        await callback.answer("⚠️ Неизвестное поле", show_alert=True)
+        return
+
+    mode = data.get("editing_mode")
+
+    if mode == "existing":
+        item_id = data.get("editing_item_id")
+        if item_id:
+            db.update_item(item_id, current_field, "Отсутствует")
+            await state.update_data(editing_field=None, editing_mode=None)
+            from handlers.editing import show_record_card
+            await show_record_card(callback.message, state, item_id,
+                                   just_saved_field=(current_field, "Отсутствует"))
+            return
+
+    if mode == "new_record":
+        data[current_field] = "Отсутствует"
+        await state.update_data(**data, editing_field=None, editing_mode=None)
+        await show_confirmation(callback.message, state)
+        return
+
+    data[current_field] = "Отсутствует"
+    await state.update_data(**data)
+    await next_field(callback.message, state, data, current_field)
+
+
 @router.callback_query(F.data == "back_prev_step")
 async def back_prev_step(callback: types.CallbackQuery, state: FSMContext):
     current_state = await state.get_state()

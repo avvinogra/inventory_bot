@@ -24,8 +24,8 @@ TECH_EXAMPLES = {
 FIELD_PROMPTS = {
     "cabinet":   "🏢 Введите номер кабинета (например, 101):",
     "tech":      "🔧 Введите марку и модель техники (например, Dell OptiPlex 3090):",
-    "serial":    "🔢 Введите серийный номер (или нажмите «Пропустить»):",
-    "inv":       "🏷️ Введите инвентарный номер (или нажмите «Пропустить»):",
+    "serial":    "🔢 Введите серийный номер (или нажмите «Отсутствует», если его нет):",
+    "inv":       "🏷️ Введите инвентарный номер (или нажмите «Отсутствует», если его нет):",
     "os":        (
         "🖥️ Выберите операционную систему из списка ниже:\n"
         "💡 Если нужной ОС нет — выберите «Другая ОС», а название укажите в «Дополнительно»\n"
@@ -193,6 +193,7 @@ async def next_field(message: types.Message, state: FSMContext, data: dict, curr
         next_field_name = fields[field_index + 1]
         text = get_tech_prompt(next_field_name, tech_type)
         can_skip = next_field_name not in REQUIRED_FIELDS
+        can_absent = next_field_name in ("inv", "serial")
 
         # Для Dr.Web показываем inline-меню вместо текстовой подсказки
         if next_field_name == "drweb":
@@ -203,7 +204,7 @@ async def next_field(message: types.Message, state: FSMContext, data: dict, curr
             from bot_core.keyboards import get_os_choice_keyboard
             reply_markup = get_os_choice_keyboard()
         else:
-            reply_markup = get_nav_keyboard(can_back=True, can_skip=can_skip)
+            reply_markup = get_nav_keyboard(can_back=True, can_skip=can_skip, can_absent=can_absent)
 
         await upsert_ui_message(message, state, text, reply_markup=reply_markup)
         await state.set_state(FIELD_TO_STATE.get(next_field_name))

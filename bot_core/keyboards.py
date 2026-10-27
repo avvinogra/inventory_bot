@@ -83,10 +83,13 @@ def get_skip_cancel_keyboard():
     )
 
 
-def get_nav_keyboard(*, can_back: bool, can_skip: bool):
+def get_nav_keyboard(*, can_back: bool, can_skip: bool, can_absent: bool = False):
+    """can_absent — показывать кнопку «Отсутствует» (для инв. и серийного номера)"""
     row = []
     if can_back:
         row.append(InlineKeyboardButton(text="⬅️ Назад", callback_data="back_prev_step"))
+    if can_absent:
+        row.append(InlineKeyboardButton(text="❓ Отсутствует", callback_data="field_absent"))
     if can_skip:
         row.append(InlineKeyboardButton(text="⏭️ Пропустить", callback_data="skip_current_field"))
     row.append(InlineKeyboardButton(text="❌ Отменить", callback_data="cancel_process"))

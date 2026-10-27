@@ -739,6 +739,51 @@ async def delete_item(item_id: int, request: Request, _: None = Depends(csrf_pro
     return Response(status_code=200)
 
 
+@app.post("/update/{item_id}", response_class=HTMLResponse)
+async def update_item(
+    item_id: int,
+    request: Request,
+    _: None = Depends(csrf_protect),
+    clinic: str = Form(""),
+    cabinet: str = Form(""),
+    tech_type: str = Form(""),
+    tech: str = Form(""),
+    inv_number: str = Form(""),
+    serial: str = Form(""),
+    os: str = Form(""),
+    drweb: str = Form(""),
+    ip: str = Form(""),
+    pc_name: str = Form(""),
+    mac_phys: str = Form(""),
+    mac_real: str = Form(""),
+    specs: str = Form(""),
+    note: str = Form(""),
+):
+    """Обновление всех полей записи через веб-форму."""
+    require_auth(request)
+
+    # Маппинг полей формы → колонки БД
+    fields = {
+        "clinic": clinic, "cabinet": cabinet, "tech_type": tech_type,
+        "tech": tech, "inv_number": inv_number, "serial": serial,
+        "os": os, "drweb": drweb, "ip": ip, "pc_name": pc_name,
+        "mac_phys": mac_phys, "mac_real": mac_real,
+        "specs": specs, "note": note,
+    }
+    try:
+        with get_db_connection() as conn:
+            for col, val in fields.items():
+                conn.execute(
+                    f"UPDATE inventory SET {col} = ? WHERE id = ?",
+                    (val, item_id)
+                )
+            conn.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления: {e}")
+
+    return RedirectResponse(url_for('item_detail', item_id=item_id), status_code=303)
+
+
 # ============================================================
 # JSON API
 # ============================================================

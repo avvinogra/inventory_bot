@@ -11,7 +11,6 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Предупреждение о несовпадении MAC -->
   {% if item.mac_phys and item.mac_real and item.mac_phys|lower != item.mac_real|lower %}
   <div class="bg-warn-500/15 border border-warn-500/30 text-warn-500 rounded-2xl p-4 mb-4 flex items-start gap-3">
     <i class="bi bi-exclamation-triangle-fill text-xl mt-0.5"></i>
@@ -25,24 +24,53 @@
   </div>
   {% endif %}
 
+  {% if arm_items %}
+  <div class="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-4 mb-4">
+    <div class="font-semibold flex items-center gap-2 mb-2">
+      <i class="bi bi-diagram-3"></i>АРМ #{{ item.arm_id }}
+    </div>
+    <div class="text-sm text-slate-400 mb-2">Другие записи в этом АРМ:</div>
+    <div class="flex flex-wrap gap-2">
+      {% for arm_item in arm_items %}
+        {% if arm_item.id != item.id %}
+        <a href="{{ url_for('item_detail', item_id=arm_item.id) }}"
+           class="px-3 py-1.5 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 text-sm">
+          #{{ arm_item.id }} • {{ arm_item.tech }} • {{ arm_item.inv_number or '—' }}
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <a href="{{ url_for('arm_detail', arm_id=item.arm_id) }}"
+       class="inline-flex items-center gap-1 mt-2 text-sm text-brand-500 hover:text-brand-600">
+      Открыть АРМ →
+    </a>
+  </div>
+  {% endif %}
+
   <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
     <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between flex-wrap gap-2">
       <div class="font-semibold flex items-center gap-2">
         <i class="bi bi-hdd"></i>{{ item.tech }}
       </div>
-      <form action="{{ url_for('delete_item', item_id=item.id) }}" method="POST"
-            onsubmit="return confirm('Удалить запись #{{ item.id }} — {{ item.tech }}?');"
-            class="d-inline">
-        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
-        <button type="submit"
-                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-bad-500/30 bg-bad-500/10 hover:bg-bad-500/20 text-bad-500 text-sm">
-          <i class="bi bi-trash"></i>Удалить
+      <div class="flex gap-2">
+        <button type="button" onclick="toggleEdit()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+          <i class="bi bi-pencil"></i>Редактировать
         </button>
-      </form>
+        <form action="{{ url_for('delete_item', item_id=item.id) }}" method="POST"
+              onsubmit="return confirm('Удалить запись #{{ item.id }} — {{ item.tech }}?');"
+              class="d-inline">
+          {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+          <button type="submit"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-bad-500/30 bg-bad-500/10 hover:bg-bad-500/20 text-bad-500 text-sm">
+            <i class="bi bi-trash"></i>Удалить
+          </button>
+        </form>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-slate-700/50">
-      <!-- Левая колонка -->
+    <!-- Режим просмотра -->
+    <div id="view-mode" class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-slate-700/50">
       <div class="bg-slate-800/40 p-4 space-y-3">
         <div class="flex justify-between items-baseline">
           <span class="text-slate-400 text-sm">ID</span>
@@ -80,7 +108,6 @@
         </div>
       </div>
 
-      <!-- Правая колонка -->
       <div class="bg-slate-800/40 p-4 space-y-3">
         <div class="flex justify-between items-baseline">
           <span class="text-slate-400 text-sm">Операционная система</span>
@@ -88,24 +115,7 @@
         </div>
         <div class="flex justify-between items-baseline">
           <span class="text-slate-400 text-sm">Dr.Web</span>
-          <span>
-            {% if item.drweb %}
-              {% set drweb_l = item.drweb|lower %}
-              {% if 'Установлен' in item.drweb or drweb_l == '+' %}
-                <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 border border-ok-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
-              {% elif 'Не установлен' in item.drweb or drweb_l == 'нет' %}
-                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-slate-400 border border-slate-700 text-xs">{{ item.drweb|drweb_display }}</span>
-              {% elif 'Нет лицензии' in item.drweb or 'нет лиц' in drweb_l %}
-                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
-              {% elif 'Нет соединения' in item.drweb or 'нет соед' in drweb_l %}
-                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs">{{ item.drweb|drweb_display }}</span>
-              {% else %}
-                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ item.drweb }}</span>
-              {% endif %}
-            {% else %}
-              <span class="text-slate-500">—</span>
-            {% endif %}
-          </span>
+          <span>{{ item.drweb or '—' }}</span>
         </div>
         <div class="flex justify-between items-baseline">
           <span class="text-slate-400 text-sm">IP-адрес</span>
@@ -160,6 +170,101 @@
         </div>
       </div>
     </div>
+
+    <!-- Режим редактирования (скрыт по умолчанию) -->
+    <div id="edit-mode" class="hidden p-4">
+      <form method="POST" action="{{ url_for('update_item', item_id=item.id) }}" class="space-y-4">
+        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Поликлиника</label>
+            <select name="clinic" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              {% for code, name in CLINICS.items() %}
+                <option value="{{ code }}" {% if item.clinic == code %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Номер кабинета</label>
+            <input type="text" name="cabinet" value="{{ item.cabinet or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Тип</label>
+            <select name="tech_type" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              <option value="">—</option>
+              {% for code, name in TECH_TYPE_LABELS.items() %}
+                <option value="{{ code }}" {% if item.tech_type == code %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Марка, модель</label>
+            <input type="text" name="tech" value="{{ item.tech or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Инвентарный номер</label>
+            <input type="text" name="inv_number" value="{{ item.inv_number or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Серийный номер</label>
+            <input type="text" name="serial" value="{{ item.serial or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Операционная система</label>
+            <select name="os" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              <option value="">—</option>
+              {% for value in ["Windows 10 x64", "Windows 10 x86 (32)", "Windows 11 x64", "Windows 11 x86 (32)", "Windows 7 x64", "Windows 7 x86 (32)", "РЕД ОС 7.3", "РЕД ОС 8", "Другая ОС"] %}
+                <option value="{{ value }}" {% if item.os == value %}selected{% endif %}>{{ value }}</option>
+              {% endfor %}
+              {% if item.os and item.os not in ["Windows 10 x64", "Windows 10 x86 (32)", "Windows 11 x64", "Windows 11 x86 (32)", "Windows 7 x64", "Windows 7 x86 (32)", "РЕД ОС 7.3", "РЕД ОС 8", "Другая ОС"] %}
+                <option value="{{ item.os }}" selected>{{ item.os }}</option>
+              {% endif %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Dr.Web</label>
+            <select name="drweb" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              <option value="">—</option>
+              {% for value in ["Установлен", "Не установлен", "Нет лицензии", "Нет соединения с сервером"] %}
+                <option value="{{ value }}" {% if item.drweb == value %}selected{% endif %}>{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">IP-адрес</label>
+            <input type="text" name="ip" value="{{ item.ip or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Имя компьютера</label>
+            <input type="text" name="pc_name" value="{{ item.pc_name or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Физический MAC</label>
+            <input type="text" name="mac_phys" value="{{ item.mac_phys or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Реальный MAC</label>
+            <input type="text" name="mac_real" value="{{ item.mac_real or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Характеристики</label>
+          <input type="text" name="specs" value="{{ item.specs or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Дополнительно</label>
+          <textarea name="note" rows="3" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">{{ item.note or '' }}</textarea>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium">
+            <i class="bi bi-check-lg"></i>Сохранить
+          </button>
+          <button type="button" onclick="toggleEdit()" class="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40">
+            Отмена
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div class="flex gap-2 mt-4">
@@ -167,9 +272,20 @@
        class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
       <i class="bi bi-arrow-left"></i>К базе
     </a>
-    <a href="{{ url_for('audit') }}"
+    <a href="{{ url_for('arm_list') }}"
        class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
-      <i class="bi bi-bug"></i>Аудит
+      <i class="bi bi-diagram-3"></i>АРМ
     </a>
   </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleEdit() {
+  const view = document.getElementById('view-mode');
+  const edit = document.getElementById('edit-mode');
+  view.classList.toggle('hidden');
+  edit.classList.toggle('hidden');
+}
+</script>
 {% endblock %}

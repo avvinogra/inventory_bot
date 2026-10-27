@@ -287,8 +287,11 @@ def get_last_item(clinic: str = None) -> Optional[Dict]:
 def find_duplicates_by_inv(inv_number: str, exclude_id: int = None) -> List[Dict]:
     """Возвращает все записи с таким же инвентарным номером.
     Нормальная ситуация — это АРМ (несколько устройств под одним номером).
+    Игнорирует значения «Отсутствует» / «нет» / пустые.
     """
     if not inv_number:
+        return []
+    if inv_number.strip().lower() in ("отсутствует", "нет", "без номера", "—", "-", ""):
         return []
     try:
         with get_db() as conn:
@@ -310,8 +313,11 @@ def find_duplicates_by_inv(inv_number: str, exclude_id: int = None) -> List[Dict
 def find_duplicates_by_serial(serial: str, exclude_id: int = None) -> List[Dict]:
     """Возвращает записи с таким же серийным номером.
     Серийный номер должен быть уникальным — дубли почти всегда ошибка.
+    Игнорирует значения «Отсутствует» / «нет» / пустые.
     """
     if not serial:
+        return []
+    if serial.strip().lower() in ("отсутствует", "нет", "без номера", "—", "-", ""):
         return []
     try:
         with get_db() as conn:

@@ -3,22 +3,14 @@
 # ============================================================
 # Сервисы:
 #   bot   — Telegram-бот (bot.py)
-#   web   — FastAPI веб-панель (web_app.py) — http://localhost:5000
+#   web   — FastAPI веб-панель (web_app.py) — http://IP:5000
 #   redis — опционально, FSM storage (если REDIS_URL=redis://redis:6379/0)
-#   caddy — опционально, HTTPS reverse proxy (если нужен публичный доступ)
+#   caddy — ОПЦИОНАЛЬНО, HTTPS reverse proxy (закомментирован по умолчанию)
 # ============================================================
 # Запуск:
-#   docker compose up -d bot web              # только бот + панель
-#   docker compose up -d                      # все сервисы
-#   docker compose up -d --scale web=1        # с масштабированием
-#
-# Логи:
+#   docker compose up -d                      # бот + панель + redis
 #   docker compose logs -f bot
-#   docker compose logs -f web
-#
-# Остановка:
 #   docker compose down
-#   docker compose down -v                    # удалить volumes (Redis, Caddy)
 # ============================================================
 
 services:
@@ -34,6 +26,13 @@ services:
       - ./labels:/app/labels
     networks:
       - inventory_net
+    healthcheck:
+      disable: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   web:
     build: .
@@ -46,7 +45,7 @@ services:
       - WEB_PANEL_HOST=0.0.0.0
       - WEB_PANEL_PORT=5000
     ports:
-      - "127.0.0.1:5000:5000"  # только с этой машины — Caddy/Nginx проксируют наружу
+      - "0.0.0.0:5000:5000"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -54,10 +53,19 @@ services:
       - inventory_net
     depends_on:
       - bot
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/api/stats"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Redis для FSM storage (опционально).
-  # Используется, если в .env задано REDIS_URL=redis://redis:6379/0.
-  # Если не используете — закомментируйте или удалите.
   redis:
     image: redis:7-alpine
     container_name: inventory_redis
@@ -67,28 +75,34 @@ services:
       - redis_data:/data
     networks:
       - inventory_net
-    # Если нужен пароль:
-    # command: ["redis-server", "--appendonly", "yes", "--requirepass", "your_redis_password"]
-    # И в .env: REDIS_URL=redis://:your_redis_password@redis:6379/0
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
 
-  # Caddy для HTTPS (опционально, для публичного доступа).
-  # Сам получает Let's Encrypt-сертификаты и продлевает.
-  # Раскомментируйте и укажите ваш домен в Caddyfile.
-  caddy:
-    image: caddy:2-alpine
-    container_name: inventory_caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"    # HTTP → редирект на HTTPS
-      - "443:443"  # HTTPS
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - inventory_net
-    depends_on:
-      - web
+  # Caddy для HTTPS (ОПЦИОНАЛЬНО — раскомментируйте если нужен HTTPS).
+  # Сначала настройте домен в Caddyfile и WEB_PANEL_FORCE_HTTPS=true в .env.
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: inventory_caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   networks:
+  #     - inventory_net
+  #   depends_on:
+  #     - web
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
 
 volumes:
   redis_data:
