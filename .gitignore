@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Виртуальные окружения
+venv/
+.venv/
+env/
+ENV/
+
+# Данные (volume-mounted, не для git!): БД с инвентарём, бэкапы, логи
+data/
+!data/.gitkeep
+logs/
+!logs/.gitkeep
+
+# Environment-файлы (BOT_TOKEN, пароль панели, chat_id!)
+.env
+.env.local
+.env*.local
+
+# Базы данных
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Инструменты разработки
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE / редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Архивы
+*.zip
+*.7z
+*.tar.gz

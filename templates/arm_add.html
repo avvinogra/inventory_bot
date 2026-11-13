@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить записи в АРМ #{{ arm_id }} • Инвентаризация{% endblock %}
+{% block page_title %}Добавить записи в АРМ #{{ arm_id }}{% endblock %}
+
+{% block content %}
+  <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden mb-4">
+    <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+      <i class="bi bi-diagram-3"></i> Записи в АРМ #{{ arm_id }} ({{ items|length }})
+    </div>
+    <div class="p-4">
+      {% for item in items %}
+      <span class="inline-block px-3 py-1 rounded-full bg-slate-700/40 text-sm mr-2 mb-2">
+        #{{ item.id }} • {{ item.tech }} • {{ item.inv_number or '—' }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+      <i class="bi bi-plus-lg"></i> Записи без АРМ ({{ free_items|length }})
+    </div>
+    {% if free_items|length == 0 %}
+    <div class="p-8 text-center text-slate-500">
+      Нет записей без АРМ — все уже распределены.
+    </div>
+    {% else %}
+    <form method="POST" action="{{ url_for('arm_add_submit', arm_id=arm_id) }}">
+      {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-slate-400 border-b border-slate-700/50">
+            <tr>
+              <th style="width: 40px;"><input type="checkbox" id="select_all" onchange="toggleAll(this)"></th>
+              <th class="text-left px-3 py-3 font-medium">ID</th>
+              <th class="text-left px-3 py-3 font-medium">Поликлиника</th>
+              <th class="text-left px-3 py-3 font-medium">Каб.</th>
+              <th class="text-left px-3 py-3 font-medium">Тип</th>
+              <th class="text-left px-3 py-3 font-medium">Марка, модель</th>
+              <th class="text-left px-3 py-3 font-medium">Инв. №</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in free_items %}
+            <tr class="border-b border-slate-700/30 hover:bg-slate-700/20">
+              <td class="px-2 py-2 text-center"><input type="checkbox" name="item_ids" value="{{ item.id }}" class="item-checkbox"></td>
+              <td class="px-3 py-2 font-semibold">{{ item.id }}</td>
+              <td class="px-3 py-2">{{ CLINICS.get(item.clinic, item.clinic) }}</td>
+              <td class="px-3 py-2">{{ item.cabinet or '—' }}</td>
+              <td class="px-3 py-2">
+                {% if item.tech_type %}
+                  <span class="badge-soft">{{ TECH_TYPE_LABELS.get(item.tech_type, item.tech_type) }}</span>
+                {% else %}
+                  <span class="text-slate-500">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 font-semibold">{{ item.tech }}</td>
+              <td class="px-3 py-2"><code class="text-slate-200">{{ item.inv_number or '—' }}</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-4 py-3 border-t border-slate-700/50 flex items-center justify-between flex-wrap gap-2">
+        <div class="text-sm text-slate-400">
+          Выбрано: <span id="selected_count">0</span>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm">
+            <i class="bi bi-check-lg"></i> Добавить в АРМ
+          </button>
+          <a href="{{ url_for('arm_detail', arm_id=arm_id) }}" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+            <i class="bi bi-arrow-left"></i> Отмена
+          </a>
+        </div>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="flex gap-2 mt-4">
+    <a href="{{ url_for('arm_detail', arm_id=arm_id) }}" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+      <i class="bi bi-arrow-left"></i> К АРМ #{{ arm_id }}
+    </a>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAll(el) {
+  document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = el.checked);
+  updateCount();
+}
+document.querySelectorAll('.item-checkbox').forEach(cb => cb.addEventListener('change', updateCount));
+function updateCount() {
+  const count = document.querySelectorAll('.item-checkbox:checked').length;
+  document.getElementById('selected_count').textContent = count;
+}
+</script>
+{% endblock %}

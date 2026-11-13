@@ -1,0 +1,81 @@
+# Конфигурация инструментария проекта inventory_bot.
+#
+#   ruff check .          — линтер (правила ниже)
+#   python -m pytest      — тесты (каталог tests/)
+#   pytest --cov .        — покрытие (порог в [tool.coverage.report])
+#
+# Фаза 2: раньше правила линтера передавались флагами CLI и нигде не
+# фиксировались — «ruff clean» зависел от того, кто и с какими флагами
+# его запускает. Фаза 3: здесь же закреплён конфиг pytest. Фаза 4:
+# добавлен порог покрытия для CI (pytest-cov, флаг --cov).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# pythonpath вместо установки проекта в venv: позволяет `import config`
+# и другим модулям из корня репозитория независимо от каталога запуска.
+pythonpath = ["."]
+addopts = "-ra"
+# Поведенческие тесты хендлеров — async: auto-режим pytest-asyncio
+# запускает их без ручной разметки @pytest.mark.asyncio на каждом.
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Тесты создают БД во временном каталоге pytest (tmp_path) — артефактов
+# в репозитории не остаётся.
+
+[tool.coverage.run]
+# Что НЕ считаем в покрытии (и почему):
+#   bot.py        — fail-fast на пустой BOT_TOKEN прямо при импорте
+#                   (поведение проверяется отдельным тестом через subprocess);
+#   diagnostic.py, view_db.py — standalone CLI-утилиты для ручной
+#                   диагностики, без автоматизируемых сценариев;
+#   tests/*       — сами тесты.
+omit = [
+    "bot.py",
+    "diagnostic.py",
+    "view_db.py",
+    "tests/*",
+]
+
+[tool.coverage.report]
+# Порог — ratchet (храповик): чуть ниже фактического покрытия, чтобы CI
+# ловил деградацию, но не падал на колебаниях. Фактическое покрытие
+# после поведенческих тестов хендлеров (мок-полигон aiogram) — ~66%:
+# БД/веб/Excel/клавиатуры/валидаторы 61-100%, хендлеры — 56-95%
+# (непокрытое — рerror-ветки и export Excel). Порог поднимайте по мере
+# роста тестов, не снижайте.
+fail_under = 63
+show_missing = true
+
+[tool.ruff]
+target-version = "py311"   # как базовый образ python:3.11-slim в Dockerfile
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes (unused imports/variables, f-string без плейсхолдеров)
+    "W",    # pycodestyle warnings
+    "I",    # сортировка импортов
+    "UP",   # модернизация синтаксиса под target-version
+    "B",    # bugbear (bug-prone паттерны)
+    "SIM",  # упрощения
+    "BLE",  # запрет слепых `except Exception` (кроме мест с noqa-обоснованием)
+    "RUF",  # ruff-специфичные правила
+]
+ignore = [
+    # Длинные строки: сообщения и комментарии на русском объективно длиннее
+    # английских; массовый перенос ~600 строк даёт шумный диф без пользы.
+    "E501",
+    # «Неоднозначная кириллица» (с vs c, Н vs H) — ложные срабатывания
+    # для русскоязычного проекта: весь UI-текст на русском по определению.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    # try/except/pass в best-effort местах читаемее contextlib.suppress,
+    # т.к. позволяет оставить комментарий, ЧТО намеренно игнорируем.
+    "SIM105",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# view_db.py / diagnostic.py — standalone-утилиты для ручной диагностики.
+"view_db.py" = ["F401"]

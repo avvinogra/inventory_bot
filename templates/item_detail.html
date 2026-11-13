@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Запись #{{ item.id }} • Инвентаризация{% endblock %}
+{% block page_title %}Запись #{{ item.id }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('inventory') }}"
+     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+    <i class="bi bi-arrow-left"></i>К базе
+  </a>
+{% endblock %}
+
+{% block content %}
+  {% if form_errors %}
+  <div class="bg-bad-500/15 border border-bad-500/30 text-bad-500 rounded-2xl p-4 mb-4">
+    <div class="font-semibold flex items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>Исправьте ошибки в форме:
+    </div>
+    <ul class="mt-2 space-y-1 text-sm text-slate-300 list-disc list-inside">
+      {% for err in form_errors %}
+      <li>{{ err }}</li>
+      {% endfor %}
+    </ul>
+    <div class="text-sm text-slate-400 mt-2">Введённые значения сохранены в форме ниже.</div>
+  </div>
+  {% endif %}
+
+  {% if item.mac_phys and item.mac_real and item.mac_phys|lower != item.mac_real|lower %}
+  <div class="bg-warn-500/15 border border-warn-500/30 text-warn-500 rounded-2xl p-4 mb-4 flex items-start gap-3">
+    <i class="bi bi-exclamation-triangle-fill text-xl mt-0.5"></i>
+    <div>
+      <div class="font-semibold">Физический MAC ≠ Реальный MAC</div>
+      <div class="text-sm text-slate-300 mt-1">
+        Физический MAC ({{ item.mac_phys }}) отличается от реального MAC ({{ item.mac_real }}).
+        По нормативу они должны совпадать.
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if arm_items %}
+  <div class="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-4 mb-4">
+    <div class="font-semibold flex items-center gap-2 mb-2">
+      <i class="bi bi-diagram-3"></i>АРМ #{{ item.arm_id }}
+    </div>
+    <div class="text-sm text-slate-400 mb-2">Другие записи в этом АРМ:</div>
+    <div class="flex flex-wrap gap-2">
+      {% for arm_item in arm_items %}
+        {% if arm_item.id != item.id %}
+        <a href="{{ url_for('item_detail', item_id=arm_item.id) }}"
+           class="px-3 py-1.5 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 text-sm">
+          #{{ arm_item.id }} • {{ arm_item.tech }} • {{ arm_item.inv_number or '—' }}
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <a href="{{ url_for('arm_detail', arm_id=item.arm_id) }}"
+       class="inline-flex items-center gap-1 mt-2 text-sm text-brand-500 hover:text-brand-600">
+      Открыть АРМ →
+    </a>
+  </div>
+  {% endif %}
+
+  <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between flex-wrap gap-2">
+      <div class="font-semibold flex items-center gap-2">
+        <i class="bi bi-hdd"></i>{{ item.tech }}
+      </div>
+      <div class="flex gap-2">
+        <button type="button" onclick="toggleEdit()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+          <i class="bi bi-pencil"></i>Редактировать
+        </button>
+        <form action="{{ url_for('delete_item', item_id=item.id) }}" method="POST"
+              onsubmit="return confirm('Удалить запись #{{ item.id }} — {{ item.tech }}?');"
+              class="d-inline">
+          {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+          <button type="submit"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-bad-500/30 bg-bad-500/10 hover:bg-bad-500/20 text-bad-500 text-sm">
+            <i class="bi bi-trash"></i>Удалить
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Режим просмотра -->
+    <div id="view-mode" class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-slate-700/50">
+      <div class="bg-slate-800/40 p-4 space-y-3">
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">ID</span>
+          <span class="font-semibold">{{ item.id }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Поликлиника</span>
+          <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ CLINICS.get(item.clinic, item.clinic) }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Номер кабинета</span>
+          <span class="font-semibold">{{ item.cabinet or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Тип</span>
+          <span>
+            {% if item.tech_type %}
+              <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ TECH_TYPE_LABELS.get(item.tech_type, item.tech_type) }}</span>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Марка, модель</span>
+          <span class="font-semibold">{{ item.tech or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Инвентарный номер</span>
+          <code class="text-slate-200">{{ item.inv_number or '—' }}</code>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Серийный номер</span>
+          <code class="text-slate-200">{{ item.serial or '—' }}</code>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/40 p-4 space-y-3">
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Операционная система</span>
+          <span>{{ item.os or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Dr.Web</span>
+          <span>{{ item.drweb or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">IP-адрес</span>
+          <span>
+            {% if item.ip %}
+              <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 text-xs">{{ item.ip }}</span>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Имя компьютера</span>
+          <span>
+            {% if item.pc_name %}
+              <code class="text-slate-200">{{ item.pc_name }}</code>
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Физический MAC</span>
+          <code class="text-slate-200">{{ item.mac_phys or '—' }}</code>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Реальный MAC</span>
+          <span>
+            {% if item.mac_real %}
+              <code class="text-slate-200">{{ item.mac_real }}</code>
+              {% if item.mac_phys and item.mac_phys|lower != item.mac_real|lower %}
+                <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30 text-xs ms-2">
+                  <i class="bi bi-exclamation-triangle me-1"></i>MAC не совпадают
+                </span>
+              {% endif %}
+            {% else %}
+              <span class="text-slate-500">—</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Характеристики</span>
+          <span>{{ item.specs or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Дополнительно</span>
+          <span>{{ item.note or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-slate-400 text-sm">Дата создания</span>
+          <span class="text-xs">{{ item.created_at or '—' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Режим редактирования (скрыт по умолчанию) -->
+    <div id="edit-mode" class="hidden p-4">
+      <form method="POST" action="{{ url_for('update_item', item_id=item.id) }}" class="space-y-4">
+        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Поликлиника</label>
+            <select name="clinic" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              {% for code, name in CLINICS.items() %}
+                <option value="{{ code }}" {% if item.clinic == code %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Номер кабинета</label>
+            <input type="text" name="cabinet" value="{{ item.cabinet or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Тип</label>
+            <select name="tech_type" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              <option value="">—</option>
+              {% for code, name in TECH_TYPE_LABELS.items() %}
+                <option value="{{ code }}" {% if item.tech_type == code %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Марка, модель</label>
+            <input type="text" name="tech" value="{{ item.tech or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Инвентарный номер</label>
+            <input type="text" name="inv_number" value="{{ item.inv_number or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Серийный номер</label>
+            <input type="text" name="serial" value="{{ item.serial or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Операционная система</label>
+            <select name="os" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              <option value="">—</option>
+              {% for value in OS_UI_VALUES %}
+                <option value="{{ value }}" {% if item.os == value %}selected{% endif %}>{{ value }}</option>
+              {% endfor %}
+              {% if item.os and item.os not in OS_UI_VALUES %}
+                <option value="{{ item.os }}" selected>{{ item.os }}</option>
+              {% endif %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Dr.Web</label>
+            <select name="drweb" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+              <option value="">—</option>
+              {% for value in DRWEB_DB_VALUES %}
+                <option value="{{ value }}" {% if item.drweb == value %}selected{% endif %}>{{ value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">IP-адрес</label>
+            <input type="text" name="ip" value="{{ item.ip or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Имя компьютера</label>
+            <input type="text" name="pc_name" value="{{ item.pc_name or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Физический MAC</label>
+            <input type="text" name="mac_phys" value="{{ item.mac_phys or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Реальный MAC</label>
+            <input type="text" name="mac_real" value="{{ item.mac_real or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Характеристики</label>
+          <input type="text" name="specs" value="{{ item.specs or '' }}" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Дополнительно</label>
+          <textarea name="note" rows="3" class="w-full px-3 py-2 bg-slate-900/60 border border-slate-700 rounded-lg text-slate-100">{{ item.note or '' }}</textarea>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium">
+            <i class="bi bi-check-lg"></i>Сохранить
+          </button>
+          <button type="button" onclick="toggleEdit()" class="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40">
+            Отмена
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="flex gap-2 mt-4">
+    <a href="{{ url_for('inventory') }}"
+       class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+      <i class="bi bi-arrow-left"></i>К базе
+    </a>
+    <a href="{{ url_for('arm_list') }}"
+       class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+      <i class="bi bi-diagram-3"></i>АРМ
+    </a>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleEdit() {
+  const view = document.getElementById('view-mode');
+  const edit = document.getElementById('edit-mode');
+  view.classList.toggle('hidden');
+  edit.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

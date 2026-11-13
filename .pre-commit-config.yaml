@@ -1,0 +1,40 @@
+# Хуки качества кода — запускаются перед каждым коммитом.
+#
+# Установка (один раз на машину):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Запуск вручную по всем файлам (первичная установка / обновление хуков):
+#   pre-commit run --all-files
+#
+# ruff-format ПОДКЛЮЧЁН (стиль форматтера принят): весь проект
+# прогнан через `ruff format .` одним коммитом — диф вкладов теперь
+# остаётся чистым, потому что форматтер запускается на каждом коммите.
+
+repos:
+  # Базовая гигиена файлов
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict   # маркеры конфликта не попадут в коммит
+      - id: check-yaml             # валидность .yml/.yaml (CI, compose)
+      - id: check-toml             # валидность pyproject.toml
+      - id: trailing-whitespace    # хвостовые пробелы
+      - id: end-of-file-fixer      # файл заканчивается ровно одним \n
+
+  # Линтер и форматтер — тот же ruff, что в CI (конфиг в pyproject.toml).
+  # language: system — берёт ruff из окружения разработчика
+  # (requirements-dev.txt), без расхождения версий с CI.
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check --fix
+        entry: ruff check --fix
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format
+        language: system
+        types: [python]

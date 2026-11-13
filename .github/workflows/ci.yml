@@ -1,0 +1,49 @@
+# CI: линтер + тесты на каждый push и pull request.
+#
+# Связка с локальной разработкой:
+#   ruff  — тот же конфиг (pyproject.toml), что и в pre-commit;
+#   pytest — те же тесты, что запускает разработчик (`python -m pytest`).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  lint:
+    name: Ruff (линтер + форматтер)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    name: Pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 — как базовый образ Dockerfile; 3.12 — проверка совместимости
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Установка зависимостей
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Тесты с покрытием
+        # Порог покрытия закреплён в pyproject.toml ([tool.coverage.report]);
+        # исключения — там же (bot.py с fail-fast, CLI-утилиты, сами тесты).
+        run: python -m pytest -v --cov=.
+      # Тесты включают проверку `ruff check .` (test_structure.py),
+      # поэтому линтер-джоба — двойная страховка на случай исключения
+      # этого теста из набора.

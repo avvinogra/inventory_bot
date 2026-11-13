@@ -1,0 +1,34 @@
+# ============================================================
+# Caddyfile — конфигурация HTTPS reverse proxy для веб-панели
+# ============================================================
+# 1. Замените inventory.example.com на ваш реальный домен
+# 2. DNS для этого домена должен указывать на IP вашего VPS
+# 3. Caddy сам получит Let's Encrypt-сертификат и продлит
+# 4. В .env задайте WEB_PANEL_FORCE_HTTPS=true
+# 5. Запуск: docker compose up -d
+# ============================================================
+
+# Основной домен
+inventory.example.com {
+    # Проксируем запросы к FastAPI-веб-панели
+    reverse_proxy web:5000
+
+    # Передаём реальный IP клиента и протокол для rate limiting
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+
+    # Логи
+    log {
+        output file /data/access.log
+        format json
+    }
+
+    # Сжатие
+    encode gzip zstd
+}
+
+# (Опционально) Дополнительный домен, который редиректит на основной
+# www.inventory.example.com {
+#     redir https://inventory.example.com{uri} permanent
+# }

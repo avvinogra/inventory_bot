@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Аудит • Инвентаризация{% endblock %}
+{% block page_title %}Аудит{% endblock %}
+
+{% block content %}
+  {% if mode == "summary" %}
+    <!-- Сводка по категориям -->
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-700/50 font-semibold flex items-center gap-2">
+        <i class="bi bi-bug"></i>Категории проблем
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-slate-400 border-b border-slate-700/50">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">Категория</th>
+              <th class="text-left px-4 py-3 font-medium text-slate-400">Описание</th>
+              <th class="text-right px-4 py-3 font-medium" style="width: 120px;">Количество</th>
+              <th class="text-right px-4 py-3 font-medium" style="width: 140px;">Действие</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in audit_summary %}
+            <tr class="border-b border-slate-700/30 hover:bg-slate-700/20">
+              <td class="px-4 py-3 font-semibold">{{ a.label }}</td>
+              <td class="px-4 py-3 text-slate-400 text-xs">{{ a.desc }}</td>
+              <td class="px-4 py-3 text-right">
+                {% if a.count > 0 %}
+                  <span class="px-2 py-1 rounded-full bg-warn-500/20 text-warn-500 border border-warn-500/30">{{ a.count }}</span>
+                {% else %}
+                  <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 border border-ok-500/30">0</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-right">
+                <a href="{{ url_for('audit') }}?cat={{ a.key }}"
+                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+                  <i class="bi bi-arrow-right"></i>Открыть
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  {% else %}
+    <!-- Список записей конкретной категории -->
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between flex-wrap gap-2">
+        <div class="font-semibold flex items-center gap-2">
+          <i class="bi bi-bug"></i>{{ category_label }}
+        </div>
+        <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">Найдено: {{ total }}</span>
+      </div>
+      {% if items|length == 0 %}
+      <div class="p-8 text-center text-slate-500">
+        <i class="bi bi-check-circle text-2xl block mb-2 text-ok-500"></i>
+        Записи не найдены — всё в порядке!
+      </div>
+      {% else %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-slate-400 border-b border-slate-700/50">
+            <tr>
+              <th class="text-left px-3 py-3 font-medium" style="width: 50px;">ID</th>
+              <th class="text-left px-3 py-3 font-medium">Поликлиника</th>
+              <th class="text-left px-3 py-3 font-medium">Каб.</th>
+              <th class="text-left px-3 py-3 font-medium">Тип</th>
+              <th class="text-left px-3 py-3 font-medium">Марка, модель</th>
+              <th class="text-left px-3 py-3 font-medium">Инв. №</th>
+              <th class="text-left px-3 py-3 font-medium hidden xl:table-cell">Серийный</th>
+              <th class="text-right px-3 py-3 font-medium">IP</th>
+              <th class="text-left px-3 py-3 font-medium hidden lg:table-cell">Имя ПК</th>
+              <th class="text-right px-3 py-3 font-medium" style="width: 80px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr class="border-b border-slate-700/30 hover:bg-slate-700/20">
+              <td class="px-3 py-2 font-semibold">{{ item.id }}</td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ CLINICS.get(item.clinic, item.clinic) }}</span>
+              </td>
+              <td class="px-3 py-2">{{ item.cabinet }}</td>
+              <td class="px-3 py-2">
+                {% if item.tech_type %}
+                  <span class="px-2 py-1 rounded-full bg-slate-700/40 text-xs">{{ TECH_TYPE_LABELS.get(item.tech_type, item.tech_type) }}</span>
+                {% else %}
+                  <span class="text-slate-500">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 font-semibold">
+                <a href="{{ url_for('item_detail', item_id=item.id) }}" class="hover:text-brand-500">{{ item.tech }}</a>
+              </td>
+              <td class="px-3 py-2"><code class="text-slate-200">{{ item.inv_number }}</code></td>
+              <td class="px-3 py-2 hidden xl:table-cell">{{ item.serial }}</td>
+              <td class="px-3 py-2 text-right">
+                {% if item.ip %}
+                  <span class="px-2 py-1 rounded-full bg-ok-500/20 text-ok-500 text-xs">{{ item.ip }}</span>
+                {% else %}
+                  <span class="text-slate-500">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 hidden lg:table-cell">
+                {% if item.pc_name %}
+                  <code class="text-slate-200 text-xs">{{ item.pc_name }}</code>
+                {% else %}
+                  <span class="text-slate-500">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 text-right">
+                <a href="{{ url_for('item_detail', item_id=item.id) }}"
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20"
+                   title="Просмотр">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if total > page_size %}
+      <div class="px-4 py-3 border-t border-slate-700/50 flex items-center justify-between">
+        <div class="text-xs text-slate-400">
+          Страница {{ page }} из {{ ((total + page_size - 1) // page_size) }}
+        </div>
+        <div class="flex gap-2">
+          {% if page > 1 %}
+            <a href="{{ url_for('audit') }}?cat={{ category }}&page={{ page-1 }}"
+               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+              <i class="bi bi-chevron-left"></i> Назад
+            </a>
+          {% endif %}
+          {% if page * page_size < total %}
+            <a href="{{ url_for('audit') }}?cat={{ category }}&page={{ page+1 }}"
+               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+              Вперёд <i class="bi bi-chevron-right"></i>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="flex gap-2 mt-4">
+    <a href="{{ url_for('audit') }}"
+       class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-sm">
+      <i class="bi bi-arrow-left"></i>К категориям
+    </a>
+    <a href="{{ url_for('inventory') }}"
+       class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/40 text-sm">
+      <i class="bi bi-database"></i>Открыть базу
+    </a>
+  </div>
+{% endblock %}
